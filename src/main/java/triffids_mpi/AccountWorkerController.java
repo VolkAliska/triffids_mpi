@@ -101,7 +101,10 @@ public class AccountWorkerController {
         model.put("report", report);
         model.put("report_title", report.getTitle());
         model.put("report_text", report.getText());
-        model.put("report_sum", report.getSum());
+        Double r_sum = report.getSum();
+        if (r_sum == null)
+            r_sum = 0.0;
+        model.put("report_sum", r_sum);
         putVariables(model, "", "");
 
         return "account_temp";

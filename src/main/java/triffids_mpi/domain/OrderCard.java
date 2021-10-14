@@ -68,11 +68,11 @@ public class OrderCard {
         this.customer = customer;
     }
 
-    public String getOrderdate() {
+    public String getDate() {
         return orderdate;
     }
 
-    public void setOrderdate(String date) {
+    public void setDate(String date) {
         this.ordername = date;
     }
 

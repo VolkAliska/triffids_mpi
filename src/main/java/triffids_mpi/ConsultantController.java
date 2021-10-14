@@ -1,6 +1,8 @@
 package triffids_mpi;
 
+import triffids_mpi.domain.Finances;
 import triffids_mpi.domain.OrderCard;
+import triffids_mpi.repos.FinancesRepo;
 import triffids_mpi.repos.OrderRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -13,6 +15,48 @@ import java.util.Map;
 public class ConsultantController {
     @Autowired
     private OrderRepo orderRepo;
+    @Autowired
+    private FinancesRepo financesRepo;
+
+    public void pushToFinances(String date, String oldQuality, Integer oldQuantity, String newQuality, Integer newQuantity) {
+        Double amount;
+        String type;
+
+        Integer oldQualityCoefficient = 0;
+        switch (oldQuality){
+            case "Техническое":
+                oldQualityCoefficient = 1;
+            case "Обычное":
+                oldQualityCoefficient = 2;
+            case "Высококачественное":
+                oldQualityCoefficient = 3;
+        }
+
+        Integer newQualityCoefficient = 0;
+        switch (newQuality){
+            case "Техническое":
+                newQualityCoefficient = 1;
+            case "Обычное":
+                newQualityCoefficient = 2;
+            case "Высококачественное":
+                newQualityCoefficient = 3;
+        }
+
+        amount = Double.valueOf(newQuantity * newQualityCoefficient - oldQuantity * oldQualityCoefficient);
+
+        if (amount >= 0) {
+            type = "Income";
+        }
+        else {
+            type = "Outcome";
+        }
+        if (amount != 0) {
+            Finances finances = new Finances(date, Math.abs(amount), type);
+
+            financesRepo.save(finances);
+        }
+
+    }
 
     public void putVariables(Map<String, Object> model, Integer id, String name, String customer, String date, String deadline, String quality, Integer quantity, String notes) {
         Integer flag;
@@ -55,17 +99,20 @@ public class ConsultantController {
     ) {
         OrderCard newOrder = new OrderCard(newOrder_name, newOrder_customer, newOrder_date, newOrder_deadline, newOrder_quality, newOrder_quantity, newOrder_notes);
 
-        putVariables(model, 0, "", "", "", "", "", 0, "");
 
         if (!newOrder_name.equals("") && !newOrder_customer.equals("") && !newOrder_date.equals("") && !newOrder_deadline.equals("") && !newOrder_quality.equals("") && !newOrder_quantity.equals("0")) {
             orderRepo.save(newOrder);
         }
+        pushToFinances(newOrder_date, "None", 0, newOrder_quality, newOrder_quantity);
+        putVariables(model, 0, "", "", "", "", "", 0, "");
 
         return "consultant_temp";
     }
 
     @PostMapping("/delete")
     public String deleteOrder(@RequestParam Integer deleteOrder_id, Map<String, Object> model) {
+        OrderCard deletedOrder = findOrder(deleteOrder_id);
+        pushToFinances(deletedOrder.getDate(), deletedOrder.getQuality(), deletedOrder.getQuantity(), "None", 0);
         orderRepo.deleteById(deleteOrder_id);
 
         putVariables(model, 0, "", "", "", "", "", 0, "");
@@ -81,7 +128,7 @@ public class ConsultantController {
         OrderCard order = findOrder(chooseOrder_id);
         String order_name = order.getOrdername();
         String order_customer = order.getCustomer();
-        String order_date = order.getOrderdate();
+        String order_date = order.getDate();
         String order_deadline = order.getOrderdeadline();
         String order_quality = order.getQuality();
         Integer order_quantity = order.getQuantity();
@@ -107,9 +154,11 @@ public class ConsultantController {
         if (order_id != 0 && !order_name.equals("") && !order_customer.equals("") && !order_date.equals("") && !order_deadline.equals("") && !order_quality.equals("") && !order_quantity.equals("0")) {
             OrderCard order = findOrder(order_id);
 
+            pushToFinances(order_date, order.getQuality(), order.getQuantity(), order_quality, order_quantity);
+
             order.setOrdername(order_name);
             order.setCustomer(order_customer);
-            order.setOrderdate(order_date);
+            order.setDate(order_date);
             order.setOrderdeadline(order_deadline);
             order.setQuality(order_quality);
             order.setQuantity(order_quantity);
